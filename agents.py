@@ -1,15 +1,22 @@
 from crewai import Agent
 from tools.tts import text_to_speech_tool
+from tools.imgsearch import image_search_tool
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 import os
+from crewai_tools import SerperDevTool
 from dotenv import load_dotenv
 load_dotenv()
 
 os.environ['GROQ_API_KEY']=os.getenv("GROQ_API_KEY")
 os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+# Set the API key for Serper
+os.environ["SERPER_API_KEY"] = os.getenv('SERPER_API_KEY')
 
 llm=ChatOpenAI(model_name='openai/gpt-4o-mini',temprature=0.7,api_key=os.environ['OPENAI_API_KEY'])
+
+# Initialize the Serper tool
+search_tool = SerperDevTool(search_url="https://google.serper.dev/images",)
 
 # llm = ChatGroq(model="groq/llama3-8b-8192", groq_api_key=os.getenv("GROQ_API_KEY"),temperature=0.7 ) # uncomment for Groq Use
 
@@ -23,6 +30,29 @@ scraper_agent = Agent(
     tools=[],
     verbose=True,
     llm=llm,
+)
+
+# Create a summarization agent
+summarization_agent = Agent(
+    role='Text Summarizer',
+    goal='Summarize a 1000-word text into 75 words for further image search.',
+    backstory=(
+        "You are an expert in condensing large texts into concise summaries."
+        "Your goal is to extract the key points of a 1000-word document and present them in 75 words."
+    ),
+    llm=llm,  # Use an LLM model for summarization
+    verbose=True,
+    memory=False
+)
+
+# Create an agent for image search
+image_search_agent = Agent(
+    role='Image Searcher',
+    goal='Find 10 relevant images based on the given topic summary.',
+    backstory='You are an expert in finding the most relevant and visually compelling images for any topic.',
+    tools=[image_search_tool],
+    verbose=True,
+    memory=False
 )
 
 refiner_agent = Agent(

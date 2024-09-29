@@ -1,5 +1,5 @@
 from crewai import Task
-from agents import scraper_agent, refiner_agent, script_writer_agent, script_validator_agent, tts_readiness_agent, tts_agent
+from agents import scraper_agent, summarization_agent, image_search_agent, refiner_agent, script_writer_agent, script_validator_agent, tts_readiness_agent, tts_agent
 
 scrape_content_task = Task(
     description=(
@@ -8,6 +8,28 @@ scrape_content_task = Task(
     ),
     expected_output="A clean version of the content in plain text format.",
     agent=scraper_agent
+)
+
+# Summarization task that produces a 75-word summary
+summarization_task = Task(
+    description=(
+        "Summarize the given input text into a concise 75-word summary. "
+        "This summary will be used by the image_search_agent for further image search."
+    ),
+    expected_output='A 75-word summary of the input text.',
+    inputs={"content": "{{scrape_content_task.output}}"},
+    agent=summarization_agent,
+)
+
+# Create a task for the image search agent
+image_search_task = Task(
+    description=(
+        "Search for 10 relevant images based on the 75-word summarized text provided by the summarization agent."
+        "Provide image URLs that closely relate to the key points in the topic description."
+    ),
+    expected_output='A list of 10 image URLs relevant to the topic description.',
+    inputs={"content": "{{summarization_task.output}}"},
+    agent=image_search_agent
 )
 
 refine_content_task = Task(
